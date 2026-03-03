@@ -3,7 +3,7 @@
  * Subscribe to storage changes with onChange listeners
  */
 
-import { AreaName } from './storage';
+import { AreaName } from './storage.js';
 
 /**
  * Error callback type for reactive storage errors

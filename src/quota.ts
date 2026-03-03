@@ -3,7 +3,7 @@
  * Track and manage chrome.storage quota usage
  */
 
-import { AreaName } from './storage';
+import { AreaName } from './storage.js';
 
 export interface QuotaInfo {
     bytesUsed: number;

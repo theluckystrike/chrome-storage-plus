@@ -3,7 +3,7 @@
  * Import and export chrome.storage data as JSON files
  */
 
-import { AreaName } from './storage';
+import { AreaName } from './storage.js';
 
 /**
  * Custom error class for StorageIO operations

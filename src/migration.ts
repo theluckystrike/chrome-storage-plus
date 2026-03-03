@@ -3,7 +3,7 @@
  * Version-based data migration system for Chrome extensions
  */
 
-import { ChromeStorage } from './storage';
+import { ChromeStorage } from './storage.js';
 
 export interface Migration {
     version: number;
