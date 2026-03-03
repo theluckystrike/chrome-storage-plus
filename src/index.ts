@@ -6,9 +6,9 @@
  * Zero runtime dependencies. Built by Zovo.
  */
 
-export { ChromeStorage, createStorage } from './storage';
-export { SchemaValidator, defineSchema } from './schema';
+export { ChromeStorage, createStorage, ChromeStorageError, ChromeStorageErrorCode } from './storage';
+export { SchemaValidator, defineSchema, ValidationError, Schema, SchemaField } from './schema';
 export { MigrationManager, Migration } from './migration';
-export { ReactiveStorage } from './reactive';
-export { QuotaManager } from './quota';
-export { StorageIO } from './io';
+export { ReactiveStorage, ReactiveStorageError, ReactiveStorageErrorCode, ErrorCallback } from './reactive';
+export { QuotaManager, QuotaInfo } from './quota';
+export { StorageIO, StorageIOError, StorageIOErrorCode } from './io';

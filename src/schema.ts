@@ -58,8 +58,21 @@ export class SchemaValidator {
             }
 
             // Custom validation
-            if (field.validate && !field.validate(value)) {
-                errors.push({ field: key, message: `${key} failed custom validation` });
+            if (field.validate) {
+                try {
+                    if (!field.validate(value)) {
+                        errors.push({ 
+                            field: key, 
+                            message: `${key} failed custom validation. Check the validate function for requirements.` 
+                        });
+                    }
+                } catch (e) {
+                    const error = e as Error;
+                    errors.push({ 
+                        field: key, 
+                        message: `${key} validation threw an error: ${error.message}. Check the validate function.` 
+                    });
+                }
             }
         }
 
