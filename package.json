@@ -1,6 +1,7 @@
 {
     "name": "chrome-storage-plus",
     "version": "0.1.0",
+    "type": "module",
     "description": "Type-safe Chrome extension storage wrapper with schema validation, data migrations, reactive subscriptions, and quota management. Zero dependencies.",
     "author": "Zovo <hello@zovo.one>",
     "license": "MIT",
