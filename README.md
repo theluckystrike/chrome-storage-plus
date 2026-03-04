@@ -1,8 +1,15 @@
 # chrome-storage-plus
 
+[![npm version](https://img.shields.io/npm/v/chrome-storage-plus)](https://npmjs.com/package/chrome-storage-plus)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Discord](https://img.shields.io/badge/Discord-Zovo-blueviolet.svg?logo=discord)](https://discord.gg/zovo)
+[![Website](https://img.shields.io/badge/Website-zovo.one-blue)](https://zovo.one)
+[![GitHub Stars](https://img.shields.io/github/stars/theluckystrike/chrome-storage-plus?style=social)](https://github.com/theluckystrike/chrome-storage-plus)
+
 > Type-safe Chrome extension storage wrapper with schema validation, data migrations, reactive subscriptions, quota management, and import/export -- zero dependencies.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Part of the [Zovo](https://zovo.one) developer tools family.
 
 ## Install
 
@@ -221,3 +228,24 @@ Each `Migration` has `version: number`, `description: string`, and `up: (data) =
 ## License
 
 MIT
+
+## See Also
+
+- [chrome-extension-core](https://github.com/theluckystrike/chrome-extension-core) - Essential utilities for Chrome extension development
+- [webext-messenger](https://github.com/theluckystrike/webext-messenger) - Type-safe messaging between extension contexts
+- [ext-background-jobs](https://github.com/theluckystrike/ext-background-jobs) - Background job scheduler
+- [chrome-devtools-kit](https://github.com/theluckystrike/chrome-devtools-kit) - Build custom DevTools panels
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+Built by [Zovo](https://zovo.one)
