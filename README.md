@@ -1,36 +1,16 @@
-# chrome-storage-plus — Type-Safe Chrome Extension Storage Wrapper
+# chrome-storage-plus
 
-[![npm version](https://img.shields.io/npm/v/chrome-storage-plus.svg)](https://www.npmjs.com/package/chrome-storage-plus)
+> Type-safe Chrome extension storage wrapper with schema validation, data migrations, reactive subscriptions, quota management, and import/export -- zero dependencies.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)]()
-[![CI Status](https://github.com/theluckystrike/chrome-storage-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/theluckystrike/chrome-storage-plus/actions)
-[![Discord](https://img.shields.io/badge/Discord-Zovo-blueviolet.svg?logo=discord)](https://discord.gg/zovo)
-[![Website](https://img.shields.io/badge/Website-zovo.one-blue)](https://zovo.one)
-[![GitHub Stars](https://img.shields.io/github/stars/theluckystrike/chrome-storage-plus?style=social)](https://github.com/theluckystrike/chrome-storage-plus)
 
-> **Built by [Zovo](https://zovo.one)** — used in production across 18+ Chrome extensions serving 3,400+ users
-
-**The missing `chrome.storage` wrapper.** Type-safe get/set, schema validation, data migrations, reactive subscriptions, quota management, and import/export — all with **zero runtime dependencies**.
-
-## Features
-
-- ✅ **Type-Safe** - Full TypeScript support with generics
-- ✅ **Schema Validation** - Define and enforce data schemas
-- ✅ **Data Migrations** - Handle schema changes gracefully
-- ✅ **Reactive Subscriptions** - Subscribe to storage changes
-- ✅ **Quota Management** - Monitor and manage storage limits
-- ✅ **Import/Export** - Backup and restore data
-- ✅ **Zero Dependencies** - Lightweight, no bloat
-
-## Installation
+## Install
 
 ```bash
-# Install from npm
 npm install chrome-storage-plus
 ```
 
-## Quick Start
+## Usage
 
 ```typescript
 import { createStorage } from 'chrome-storage-plus';
@@ -43,14 +23,19 @@ const theme = await storage.get<string>('theme'); // string | undefined
 const theme2 = await storage.get('theme', 'light'); // string (with default)
 
 // Check existence
-if (await storage.has('theme')) { /* ... */ }
+if (await storage.has('theme')) {
+  console.log('Theme key exists');
+}
 
 // Batch operations
 await storage.setMany({ theme: 'dark', fontSize: 14 });
-const { theme, fontSize } = await storage.getMany(['theme', 'fontSize']);
-```
+const values = await storage.getMany(['theme', 'fontSize']);
 
-## Usage Examples
+// Remove and clear
+await storage.remove('theme');
+await storage.remove(['theme', 'fontSize']);
+await storage.clear();
+```
 
 ### Schema Validation
 
@@ -63,10 +48,7 @@ const settingsSchema = defineSchema({
   notifications: { type: 'boolean', default: true },
 });
 
-// Validate data
 const { valid, errors } = settingsSchema.validate(data);
-
-// Apply defaults for missing fields
 const withDefaults = settingsSchema.applyDefaults(data);
 ```
 
@@ -86,20 +68,10 @@ const migrations = new MigrationManager(storage, [
       return data;
     },
   },
-  {
-    version: 2,
-    description: 'Add theme default',
-    up: (data) => {
-      if (!data.preferences) data.preferences = {};
-      (data.preferences as any).theme = (data.preferences as any).theme || 'auto';
-      return data;
-    },
-  },
 ]);
 
-// Run on extension startup
 const result = await migrations.migrate();
-console.log(`Migrated from v${result.from} to v${result.to}`);
+// { migrated: true, from: 0, to: 1, applied: ['v1: Rename settings key'] }
 ```
 
 ### Reactive Subscriptions
@@ -109,14 +81,24 @@ import { ReactiveStorage } from 'chrome-storage-plus';
 
 const reactive = new ReactiveStorage('local');
 
-// Subscribe to specific key changes
+// Subscribe to a specific key
 const unsubscribe = reactive.onChange<string>('theme', (newValue, oldValue) => {
-  console.log(`Theme changed: ${oldValue} → ${newValue}`);
-  updateUI(newValue);
+  console.log(`Theme changed: ${oldValue} -> ${newValue}`);
 });
 
-// Clean up when done
+// Subscribe to all changes in a storage area
+const unsub = reactive.onAnyChange((changes) => {
+  console.log('Storage changed:', changes);
+});
+
+// Set an error handler for callback failures
+reactive.onError((error, key, operation) => {
+  console.error(`Error in ${operation} for key "${key}":`, error);
+});
+
+// Clean up
 unsubscribe();
+reactive.dispose();
 ```
 
 ### Quota Management
@@ -126,17 +108,14 @@ import { QuotaManager } from 'chrome-storage-plus';
 
 const quota = new QuotaManager('local');
 
-// Check usage
 const { bytesUsed, percentUsed, bytesRemaining } = await quota.getQuota();
 console.log(`Using ${percentUsed}% of storage`);
 
-// Check before saving
 if (await quota.wouldExceedQuota('bigData', largeObject)) {
   alert('Not enough storage space!');
 }
 
-// Find biggest keys
-const keys = await quota.getKeysBySize();
+const keysBySize = await quota.getKeysBySize(); // sorted largest first
 ```
 
 ### Import / Export
@@ -146,93 +125,99 @@ import { StorageIO } from 'chrome-storage-plus';
 
 const io = new StorageIO('local');
 
-// Export to file download
-await io.exportToFile('my-extension-backup.json');
+// Export to JSON string
+const json = await io.exportData();
 
-// Import from file input
-const fileInput = document.getElementById('import') as HTMLInputElement;
-fileInput.addEventListener('change', async (e) => {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (file) {
-    const { imported } = await io.importFromFile(file);
-    console.log(`Imported ${imported} keys`);
-  }
-});
+// Export as a downloadable file
+await io.exportToFile('backup.json');
+
+// Import from JSON string (merges by default, pass true to overwrite)
+const { imported } = await io.importData(jsonString);
+const { imported: count } = await io.importData(jsonString, true); // overwrite
+
+// Import from a File object (e.g., from <input type="file">)
+const { imported: n } = await io.importFromFile(file);
 ```
 
-## API Overview
+## API
 
-| Export | Description |
+### `createStorage(area?)`
+
+Factory function that returns a `ChromeStorage` instance.
+
+- `area` -- `'local'` | `'sync'` | `'session'` (default: `'local'`)
+
+### `ChromeStorage`
+
+| Method | Description |
 |--------|-------------|
-| `createStorage()` | Create a type-safe storage instance |
-| `ReactiveStorage` | Subscribe to storage changes |
-| `MigrationManager` | Handle schema migrations |
-| `QuotaManager` | Monitor storage quotas |
-| `StorageIO` | Import/export storage data |
-| `defineSchema` | Define validation schemas |
+| `get<T>(key, defaultValue?)` | Get a typed value by key. Returns `T \| undefined` or `T` when a default is provided. |
+| `getMany<T>(keys)` | Get multiple values. Returns `Partial<T>`. |
+| `set<T>(key, value)` | Set a typed value by key. |
+| `setMany(items)` | Set multiple key-value pairs at once. |
+| `remove(key)` | Remove one key or an array of keys. |
+| `clear()` | Remove all data in the storage area. |
+| `getAll()` | Get every key-value pair in the storage area. |
+| `has(key)` | Check whether a key exists. Returns `boolean`. |
+| `getAreaName()` | Get the storage area name (`'local'`, `'sync'`, or `'session'`). |
 
-## Development Commands
+### `defineSchema(schema)` / `SchemaValidator`
 
-```bash
-# Install dependencies
-npm install
+| Method | Description |
+|--------|-------------|
+| `validate(data)` | Validate data against the schema. Returns `{ valid: boolean, errors: ValidationError[] }`. |
+| `applyDefaults(data)` | Return a copy of `data` with missing fields filled from schema defaults. |
 
-# Build TypeScript
-npm run build
+Schema fields support `type` (`'string'` | `'number'` | `'boolean'` | `'object'` | `'array'`), `required`, `default`, and a custom `validate` function.
 
-# Run tests
-npm test
+### `MigrationManager`
 
-# Lint
-npm run lint
-```
+| Method | Description |
+|--------|-------------|
+| `constructor(storage, migrations?)` | Create a manager with an array of versioned migrations. |
+| `addMigration(migration)` | Add a migration. Returns `this` for chaining. |
+| `getCurrentVersion()` | Get the stored schema version number. |
+| `getLatestVersion()` | Get the highest migration version. |
+| `migrate()` | Run all pending migrations. Returns `{ migrated, from, to, applied }`. |
 
-## Contributing
+Each `Migration` has `version: number`, `description: string`, and `up: (data) => data`.
 
-Contributions are welcome! Please follow these steps:
+### `ReactiveStorage`
 
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/storage-improvement`
-3. **Make** your changes
-4. **Test** your changes: `npm test`
-5. **Commit** your changes: `git commit -m 'Add new feature'`
-6. **Push** to the branch: `git push origin feature/storage-improvement`
-7. **Submit** a Pull Request
+| Method | Description |
+|--------|-------------|
+| `constructor(area?)` | Create a reactive storage listener for the given area. |
+| `onChange<T>(key, callback)` | Subscribe to changes on a specific key. Returns an unsubscribe function. |
+| `onAnyChange(callback)` | Subscribe to all changes in the storage area. Returns an unsubscribe function. |
+| `onError(callback)` | Set a global error handler for subscription callback failures. |
+| `dispose()` | Remove all subscriptions and stop listening. |
 
-## Used By
+### `QuotaManager`
 
-- [Tab Suspender Pro](https://chrome.google.com/webstore/detail/tab-suspender-pro) — 1,400+ users
-- [JSON Formatter Pro](https://chrome.google.com/webstore/detail/json-formatter-pro) — 2,000+ users
-- [Cookie Manager Pro](https://chrome.google.com/webstore/detail/cookie-manager-pro) — Production
-- [Clipboard History Pro](https://chrome.google.com/webstore/detail/clipboard-history-pro) — Production
-- ...and 14 more Zovo extensions
+| Method | Description |
+|--------|-------------|
+| `constructor(area?)` | Create a quota manager for the given area. |
+| `getQuota()` | Returns `{ bytesUsed, bytesTotal, percentUsed, bytesRemaining }`. |
+| `getKeySize(key)` | Get the size of a specific key in bytes. |
+| `wouldExceedQuota(key, value)` | Check if storing a value would exceed the quota. |
+| `getKeysBySize()` | Get all keys sorted by size (largest first). Returns `{ key, bytes }[]`. |
 
-## Built by Zovo
+### `StorageIO`
 
-Part of the [Zovo](https://zovo.one) developer tools family — privacy-first Chrome extensions built by developers, for developers.
+| Method | Description |
+|--------|-------------|
+| `constructor(area?)` | Create an I/O manager for the given area. |
+| `exportData()` | Export all storage data as a JSON string. |
+| `exportToFile(filename?)` | Export data and trigger a browser file download. |
+| `importData(json, overwrite?)` | Import from a JSON string. Merges by default. Returns `{ imported }`. |
+| `importFromFile(file, overwrite?)` | Import from a `File` object. Returns `{ imported }`. |
 
-## See Also
+### Error Classes
 
-### Related Zovo Repositories
-
-- [chrome-extension-starter-mv3](https://github.com/theluckystrike/chrome-extension-starter-mv3) — Chrome extension boilerplate
-- [zovo-extension-template](https://github.com/theluckystrike/zovo-extension-template) - Privacy-first extension template
-- [crx-permission-analyzer](https://github.com/theluckystrike/crx-permission-analyzer) - Analyze extension permissions
-- [crx-manifest-validator](https://github.com/theluckystrike/crx-manifest-validator) - Validate manifest files
-- [webext-bridge](https://github.com/theluckystrike/webext-bridge) - Cross-context messaging
-
-### Zovo Chrome Extensions
-
-- [Zovo Tab Manager](https://chrome.google.com/webstore/detail/zovo-tab-manager) - Manage tabs efficiently
-- [Zovo Focus](https://chrome.google.com/webstore/detail/zovo-focus) - Block distractions
-- [Zovo Permissions Scanner](https://chrome.google.com/webstore/detail/zovo-permissions-scanner) - Check extension privacy grades
-
-Visit [zovo.one](https://zovo.one) for more information.
+- `ChromeStorageError` -- thrown by `ChromeStorage` (codes: `CHROME_API_UNAVAILABLE`, `OPERATION_FAILED`, `INVALID_KEY`, `SERIALIZATION_FAILED`)
+- `ReactiveStorageError` -- thrown by `ReactiveStorage` (codes: `CHROME_API_UNAVAILABLE`, `CALLBACK_ERROR`, `INVALID_KEY`)
+- `StorageIOError` -- thrown by `StorageIO` (codes: `JSON_PARSE_FAILED`, `INVALID_DATA_TYPE`, `CHROME_STORAGE_ERROR`, `FILE_READ_ERROR`)
 
 ## License
 
-MIT — [Zovo](https://zovo.one)
-
----
-
-*Built by developers, for developers. No compromises on privacy.*
+MIT
