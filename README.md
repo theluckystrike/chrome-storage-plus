@@ -17,6 +17,10 @@ Part of the [Zovo](https://zovo.one) developer tools family.
 npm install chrome-storage-plus
 ```
 
+## Quick Start
+
+For a complete working example with all features, see [examples/basic-usage.js](./examples/basic-usage.js).
+
 ## Usage
 
 ```typescript
