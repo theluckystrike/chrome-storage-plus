@@ -3,52 +3,50 @@
 [![npm version](https://img.shields.io/npm/v/chrome-storage-plus)](https://npmjs.com/package/chrome-storage-plus)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Discord](https://img.shields.io/badge/Discord-Zovo-blueviolet.svg?logo=discord)](https://discord.gg/zovo)
-[![Website](https://img.shields.io/badge/Website-zovo.one-blue)](https://zovo.one)
 [![GitHub Stars](https://img.shields.io/github/stars/theluckystrike/chrome-storage-plus?style=social)](https://github.com/theluckystrike/chrome-storage-plus)
 
-> Type-safe Chrome extension storage wrapper with schema validation, data migrations, reactive subscriptions, quota management, and import/export -- zero dependencies.
+Type-safe Chrome extension storage with schema validation, data migrations, reactive subscriptions, quota management, and import/export. Zero runtime dependencies. Works with Manifest V3.
 
-Part of the [Zovo](https://zovo.one) developer tools family.
-
-## Install
+INSTALL
 
 ```bash
 npm install chrome-storage-plus
 ```
 
-## Quick Start
+Peer dependency on @types/chrome is optional but recommended for full TypeScript support.
 
-For a complete working example with all features, see [examples/basic-usage.js](./examples/basic-usage.js).
-
-## Usage
+BASIC USAGE
 
 ```typescript
 import { createStorage } from 'chrome-storage-plus';
 
-const storage = createStorage('local'); // or 'sync' or 'session'
+// Create a storage instance for local, sync, or session
+const storage = createStorage('local');
 
-// Type-safe get/set
+// Get and set with generics
 await storage.set('theme', 'dark');
-const theme = await storage.get<string>('theme'); // string | undefined
-const theme2 = await storage.get('theme', 'light'); // string (with default)
+const theme = await storage.get<string>('theme');        // string | undefined
+const safe = await storage.get('theme', 'light');        // string (default applied)
 
-// Check existence
-if (await storage.has('theme')) {
-  console.log('Theme key exists');
-}
+// Check if a key exists
+const exists = await storage.has('theme');
 
 // Batch operations
 await storage.setMany({ theme: 'dark', fontSize: 14 });
 const values = await storage.getMany(['theme', 'fontSize']);
 
-// Remove and clear
+// Remove one key, several keys, or everything
 await storage.remove('theme');
 await storage.remove(['theme', 'fontSize']);
 await storage.clear();
+
+// Grab all stored data
+const all = await storage.getAll();
 ```
 
-### Schema Validation
+SCHEMA VALIDATION
+
+Runtime type checking with no external libraries. Define a schema, validate incoming data, and fill in defaults for missing fields.
 
 ```typescript
 import { defineSchema } from 'chrome-storage-plus';
@@ -63,7 +61,11 @@ const { valid, errors } = settingsSchema.validate(data);
 const withDefaults = settingsSchema.applyDefaults(data);
 ```
 
-### Data Migrations
+Each field accepts a type ('string', 'number', 'boolean', 'object', or 'array'), an optional required flag, an optional default value, and an optional custom validate function that receives the value and returns a boolean.
+
+DATA MIGRATIONS
+
+Version-based migration system that runs pending transforms in order and persists the version number to storage.
 
 ```typescript
 import { createStorage, MigrationManager } from 'chrome-storage-plus';
@@ -81,185 +83,129 @@ const migrations = new MigrationManager(storage, [
   },
 ]);
 
+// You can also chain additional migrations
+migrations.addMigration({
+  version: 2,
+  description: 'Add default locale',
+  up: (data) => {
+    data.locale = data.locale ?? 'en';
+    return data;
+  },
+});
+
 const result = await migrations.migrate();
-// { migrated: true, from: 0, to: 1, applied: ['v1: Rename settings key'] }
+// { migrated: true, from: 0, to: 2, applied: ['v1: ...', 'v2: ...'] }
 ```
 
-### Reactive Subscriptions
+The up function can be sync or async. getCurrentVersion() returns the stored version number and getLatestVersion() returns the highest registered migration version.
+
+REACTIVE SUBSCRIPTIONS
+
+Listen for storage changes on individual keys or across an entire storage area. Each subscription returns an unsubscribe function.
 
 ```typescript
 import { ReactiveStorage } from 'chrome-storage-plus';
 
 const reactive = new ReactiveStorage('local');
 
-// Subscribe to a specific key
-const unsubscribe = reactive.onChange<string>('theme', (newValue, oldValue) => {
-  console.log(`Theme changed: ${oldValue} -> ${newValue}`);
+// Watch a single key
+const unsub = reactive.onChange<string>('theme', (newValue, oldValue) => {
+  console.log(`Theme changed from ${oldValue} to ${newValue}`);
 });
 
-// Subscribe to all changes in a storage area
-const unsub = reactive.onAnyChange((changes) => {
+// Watch all changes in the area
+const unsubAll = reactive.onAnyChange((changes) => {
   console.log('Storage changed:', changes);
 });
 
-// Set an error handler for callback failures
+// Handle errors from callbacks
 reactive.onError((error, key, operation) => {
   console.error(`Error in ${operation} for key "${key}":`, error);
 });
 
-// Clean up
-unsubscribe();
+// Clean up when done
+unsub();
+unsubAll();
 reactive.dispose();
 ```
 
-### Quota Management
+QUOTA MANAGEMENT
+
+Inspect storage usage, check if a write would exceed quota, and find your largest keys.
 
 ```typescript
 import { QuotaManager } from 'chrome-storage-plus';
 
 const quota = new QuotaManager('local');
 
-const { bytesUsed, percentUsed, bytesRemaining } = await quota.getQuota();
-console.log(`Using ${percentUsed}% of storage`);
+const { bytesUsed, bytesTotal, percentUsed, bytesRemaining } = await quota.getQuota();
+
+const keyBytes = await quota.getKeySize('bigData');
 
 if (await quota.wouldExceedQuota('bigData', largeObject)) {
-  alert('Not enough storage space!');
+  console.warn('Not enough storage space');
 }
 
-const keysBySize = await quota.getKeysBySize(); // sorted largest first
+const sorted = await quota.getKeysBySize(); // [{ key, bytes }, ...] largest first
 ```
 
-### Import / Export
+Built-in limits are 10 MB for local and session, 100 KB total for sync, and 8 KB per item for sync.
+
+IMPORT AND EXPORT
+
+Move data in and out of chrome.storage as JSON. Useful for backups, debugging, and migration tooling.
 
 ```typescript
 import { StorageIO } from 'chrome-storage-plus';
 
 const io = new StorageIO('local');
 
-// Export to JSON string
+// Export everything as a JSON string
 const json = await io.exportData();
 
-// Export as a downloadable file
+// Trigger a browser file download
 await io.exportToFile('backup.json');
 
-// Import from JSON string (merges by default, pass true to overwrite)
+// Import from a JSON string (merges by default)
 const { imported } = await io.importData(jsonString);
-const { imported: count } = await io.importData(jsonString, true); // overwrite
 
-// Import from a File object (e.g., from <input type="file">)
-const { imported: n } = await io.importFromFile(file);
+// Overwrite all existing data instead of merging
+await io.importData(jsonString, true);
+
+// Import from a File object (from an input element, for example)
+await io.importFromFile(file);
 ```
 
-## API
+ERROR HANDLING
 
-### `createStorage(area?)`
+Every module throws typed errors with machine-readable codes.
 
-Factory function that returns a `ChromeStorage` instance.
+ChromeStorageError is thrown by ChromeStorage with codes CHROME_API_UNAVAILABLE, OPERATION_FAILED, INVALID_KEY, and SERIALIZATION_FAILED.
 
-- `area` -- `'local'` | `'sync'` | `'session'` (default: `'local'`)
+ReactiveStorageError is thrown by ReactiveStorage with codes CHROME_API_UNAVAILABLE, CALLBACK_ERROR, and INVALID_KEY.
 
-### `ChromeStorage`
+StorageIOError is thrown by StorageIO with codes JSON_PARSE_FAILED, INVALID_DATA_TYPE, CHROME_STORAGE_ERROR, and FILE_READ_ERROR.
 
-| Method | Description |
-|--------|-------------|
-| `get<T>(key, defaultValue?)` | Get a typed value by key. Returns `T \| undefined` or `T` when a default is provided. |
-| `getMany<T>(keys)` | Get multiple values. Returns `Partial<T>`. |
-| `set<T>(key, value)` | Set a typed value by key. |
-| `setMany(items)` | Set multiple key-value pairs at once. |
-| `remove(key)` | Remove one key or an array of keys. |
-| `clear()` | Remove all data in the storage area. |
-| `getAll()` | Get every key-value pair in the storage area. |
-| `has(key)` | Check whether a key exists. Returns `boolean`. |
-| `getAreaName()` | Get the storage area name (`'local'`, `'sync'`, or `'session'`). |
+```typescript
+import { ChromeStorageError } from 'chrome-storage-plus';
 
-### `defineSchema(schema)` / `SchemaValidator`
+try {
+  await storage.get('key');
+} catch (e) {
+  if (e instanceof ChromeStorageError) {
+    console.error(e.code, e.operation, e.message);
+  }
+}
+```
 
-| Method | Description |
-|--------|-------------|
-| `validate(data)` | Validate data against the schema. Returns `{ valid: boolean, errors: ValidationError[] }`. |
-| `applyDefaults(data)` | Return a copy of `data` with missing fields filled from schema defaults. |
+TYPESCRIPT
 
-Schema fields support `type` (`'string'` | `'number'` | `'boolean'` | `'object'` | `'array'`), `required`, `default`, and a custom `validate` function.
+The package ships with full type declarations. @types/chrome is listed as an optional peer dependency so your editor can resolve chrome.storage types when installed.
 
-### `MigrationManager`
+LICENSE
 
-| Method | Description |
-|--------|-------------|
-| `constructor(storage, migrations?)` | Create a manager with an array of versioned migrations. |
-| `addMigration(migration)` | Add a migration. Returns `this` for chaining. |
-| `getCurrentVersion()` | Get the stored schema version number. |
-| `getLatestVersion()` | Get the highest migration version. |
-| `migrate()` | Run all pending migrations. Returns `{ migrated, from, to, applied }`. |
-
-Each `Migration` has `version: number`, `description: string`, and `up: (data) => data`.
-
-### `ReactiveStorage`
-
-| Method | Description |
-|--------|-------------|
-| `constructor(area?)` | Create a reactive storage listener for the given area. |
-| `onChange<T>(key, callback)` | Subscribe to changes on a specific key. Returns an unsubscribe function. |
-| `onAnyChange(callback)` | Subscribe to all changes in the storage area. Returns an unsubscribe function. |
-| `onError(callback)` | Set a global error handler for subscription callback failures. |
-| `dispose()` | Remove all subscriptions and stop listening. |
-
-### `QuotaManager`
-
-| Method | Description |
-|--------|-------------|
-| `constructor(area?)` | Create a quota manager for the given area. |
-| `getQuota()` | Returns `{ bytesUsed, bytesTotal, percentUsed, bytesRemaining }`. |
-| `getKeySize(key)` | Get the size of a specific key in bytes. |
-| `wouldExceedQuota(key, value)` | Check if storing a value would exceed the quota. |
-| `getKeysBySize()` | Get all keys sorted by size (largest first). Returns `{ key, bytes }[]`. |
-
-### `StorageIO`
-
-| Method | Description |
-|--------|-------------|
-| `constructor(area?)` | Create an I/O manager for the given area. |
-| `exportData()` | Export all storage data as a JSON string. |
-| `exportToFile(filename?)` | Export data and trigger a browser file download. |
-| `importData(json, overwrite?)` | Import from a JSON string. Merges by default. Returns `{ imported }`. |
-| `importFromFile(file, overwrite?)` | Import from a `File` object. Returns `{ imported }`. |
-
-### Error Classes
-
-- `ChromeStorageError` -- thrown by `ChromeStorage` (codes: `CHROME_API_UNAVAILABLE`, `OPERATION_FAILED`, `INVALID_KEY`, `SERIALIZATION_FAILED`)
-- `ReactiveStorageError` -- thrown by `ReactiveStorage` (codes: `CHROME_API_UNAVAILABLE`, `CALLBACK_ERROR`, `INVALID_KEY`)
-- `StorageIOError` -- thrown by `StorageIO` (codes: `JSON_PARSE_FAILED`, `INVALID_DATA_TYPE`, `CHROME_STORAGE_ERROR`, `FILE_READ_ERROR`)
-
-## License
-
-MIT
-
-## See Also
-
-### Related Zovo Repositories
-
-- [chrome-extension-core](https://github.com/theluckystrike/chrome-extension-core) - Essential utilities for Chrome extension development
-- [webext-messenger](https://github.com/theluckystrike/webext-messenger) - Type-safe messaging between extension contexts
-- [ext-background-jobs](https://github.com/theluckystrike/ext-background-jobs) - Background job scheduler
-- [chrome-devtools-kit](https://github.com/theluckystrike/chrome-devtools-kit) - Build custom DevTools panels
-- [chrome-extension-starter-mv3](https://github.com/theluckystrike/chrome-extension-starter-mv3) - Production-ready Chrome extension starter
-
-### Zovo Chrome Extensions
-
-- [Zovo Tab Manager](https://chrome.google.com/webstore/detail/zovo-tab-manager) - Manage tabs efficiently
-- [Zovo Focus](https://chrome.google.com/webstore/detail/zovo-focus) - Block distractions
-
-Visit [zovo.one](https://zovo.one) for more information.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+MIT. See LICENSE file.
 
 ---
 
-Built by [Zovo](https://zovo.one)
+Built by Zovo -- https://zovo.one
