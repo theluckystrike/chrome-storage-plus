@@ -1,67 +1,75 @@
 {
-    "name": "chrome-storage-plus",
-    "version": "0.1.0",
-    "type": "module",
-    "description": "Type-safe Chrome extension storage wrapper with schema validation, data migrations, reactive subscriptions, and quota management. Zero dependencies.",
-    "author": "Zovo <hello@zovo.one>",
-    "license": "MIT",
-    "keywords": [
-        "chrome-extension",
-        "chrome-storage",
-        "storage",
-        "wrapper",
-        "typescript",
-        "manifest-v3",
-        "mv3",
-        "type-safe",
-        "schema-validation",
-        "reactive",
-        "browser-extension"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/theluckystrike/chrome-storage-plus.git"
-    },
-    "homepage": "https://github.com/theluckystrike/chrome-storage-plus",
-    "bugs": {
-        "url": "https://github.com/theluckystrike/chrome-storage-plus/issues"
-    },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "files": [
-        "dist",
-        "README.md",
-        "LICENSE"
-    ],
-    "scripts": {
-        "build": "tsc",
-        "dev": "tsc --watch",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage",
-        "lint": "eslint src --ext .ts",
-        "lint:fix": "eslint src --ext .ts --fix",
-        "format": "prettier --write \"src/**/*.ts\"",
-        "prepublishOnly": "npm run build && npm test"
-    },
-    "peerDependencies": {
-        "@types/chrome": ">=0.0.200"
-    },
-    "peerDependenciesMeta": {
-        "@types/chrome": {
-            "optional": true
-        }
-    },
-    "devDependencies": {
-        "@types/chrome": "^0.0.260",
-        "@typescript-eslint/eslint-plugin": "^6.19.1",
-        "@typescript-eslint/parser": "^6.19.1",
-        "@vitest/coverage-v8": "^4.0.18",
-        "eslint": "^8.56.0",
-        "eslint-config-prettier": "^9.1.0",
-        "prettier": "^3.2.4",
-        "typescript": "^5.3.3",
-        "vitest": "^4.0.18"
+  "name": "chrome-storage-plus",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Type-safe Chrome extension storage wrapper with schema validation, data migrations, reactive subscriptions, and quota management. Zero dependencies.",
+  "author": "Zovo <hello@zovo.one>",
+  "license": "MIT",
+  "keywords": [
+    "chrome-extension",
+    "chrome-storage",
+    "storage",
+    "wrapper",
+    "typescript",
+    "manifest-v3",
+    "mv3",
+    "type-safe",
+    "schema-validation",
+    "reactive",
+    "browser-extension"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theluckystrike/chrome-storage-plus.git"
+  },
+  "homepage": "https://github.com/theluckystrike/chrome-storage-plus",
+  "bugs": {
+    "url": "https://github.com/theluckystrike/chrome-storage-plus/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build && npm test",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "@types/chrome": ">=0.0.200"
+  },
+  "peerDependenciesMeta": {
+    "@types/chrome": {
+      "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
 }
