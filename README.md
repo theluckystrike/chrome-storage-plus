@@ -1,9 +1,9 @@
-# chrome-storage-plus
+[![CI](https://github.com/theluckystrike/chrome-storage-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/theluckystrike/chrome-storage-plus/actions)
+[![npm](https://img.shields.io/npm/v/chrome-storage-plus)](https://www.npmjs.com/package/chrome-storage-plus)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
-[![npm version](https://img.shields.io/npm/v/chrome-storage-plus)](https://npmjs.com/package/chrome-storage-plus)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![GitHub Stars](https://img.shields.io/github/stars/theluckystrike/chrome-storage-plus?style=social)](https://github.com/theluckystrike/chrome-storage-plus)
+# chrome-storage-plus
 
 Type-safe Chrome extension storage with schema validation, data migrations, reactive subscriptions, quota management, and import/export. Zero runtime dependencies. Works with Manifest V3.
 
@@ -207,5 +207,4 @@ LICENSE
 MIT. See LICENSE file.
 
 ---
-
-Built by Zovo -- https://zovo.one
+Built by [theluckystrike](https://github.com/theluckystrike) — [zovo.one](https://zovo.one)
